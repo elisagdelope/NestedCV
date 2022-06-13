@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
+*.DS_store
+
 # scikit-learn specific
 doc/_build/
 doc/auto_examples/
