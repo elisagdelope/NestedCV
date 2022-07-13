@@ -9,10 +9,16 @@ from sklearn.ensemble import RandomForestRegressor, \
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import VarianceThreshold, SelectFromModel
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, Lasso
 from sklearn.neural_network import MLPRegressor
 from sklearn.neighbors import KNeighborsRegressor
+import os
+import sys
+import warnings
 
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore"
 
 def normalized_mse(y, x):
     mse_ref = mean_squared_error(y, np.zeros_like(y))
@@ -94,6 +100,7 @@ class NestedCV:
             (self.n_split_outer, len(self.names_models), len(self.list_metrics)))
         k = 0
         for idx_train, idx_test in self.cv_outer.split(X, y):
+            print('Split number %i' % (k + 1))
             # split data
             X_train, X_test = X[idx_train, :], X[idx_test, :]
             y_train, y_test = y[idx_train], y[idx_test]
@@ -106,11 +113,12 @@ class NestedCV:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    self.dict_parameters[model]['selecter__max_features'] = np.linspace(
-                        10, X.shape[1], 10, dtype=int)
+                    regs = np.logspace(-4, 4, 10)
+                    self.dict_parameters[model]['selecter__estimator__alpha'] = regs[::-1]
                     steps.append((
                         'selecter', SelectFromModel(
-                            RandomForestRegressor(n_estimators=500))))
+                            Lasso(
+                                tol=self.tol, max_iter=self.max_iter))))
                 steps.append(('model', self.dict_models[model]))
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
@@ -170,12 +178,16 @@ class NestedCV:
         steps = list()
         if normalize:
             steps.append(('scaler', StandardScaler()))
+        if X.shape[1] < 10:
+            raise ValueError(
+                'Not enough features to perform feature selection')
         if feat_select:
-            self.dict_parameters[name_model]['selecter__max_features'] = np.linspace(
-                        10, X.shape[1], 10, dtype=int)
+            regs = np.logspace(-4, 4, 10)
+            self.dict_parameters[name_model]['selecter__estimator__alpha'] = regs[::-1]
             steps.append((
                 'selecter', SelectFromModel(
-                    RandomForestRegressor(n_estimators=500))))
+                    Lasso(
+                        tol=self.tol, max_iter=self.max_iter))))
         steps.append(('model', self.dict_models[name_model]))
         pipeline = Pipeline(steps)
         search = GridSearchCV(
