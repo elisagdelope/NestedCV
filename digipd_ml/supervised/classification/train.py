@@ -8,12 +8,20 @@ from sklearn.ensemble import RandomForestClassifier, \
      GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
-from sklearn.pipeline import Pipeline
+from imblearn.pipeline import Pipeline
 from sklearn.feature_selection import VarianceThreshold, SelectFromModel
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from imodels import FIGSClassifier
+from imblearn.under_sampling import RandomUnderSampler
+import os
+import sys
+import warnings
+
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore"
 
 
 # Define a class that performs comparison of various ML algorithms based
@@ -26,11 +34,11 @@ class NestedCV:
         self.cv_inner = KFold(n_splits=n_split_inner, shuffle=True)
         self.names_models = [
             "linearSVM", "RBFSVM", "RandomForest", "GradientBoosting",
-            "Neural_network", "KNN", "Adaboost", "LogisticRegression",
-            "FIGS"]
+            "Adaboost", "LogisticRegression"]
         self.dict_models = {}
         self.tol = 1e-3
         self.max_iter = 10_000
+
         self.dict_models["linearSVM"] = SVC(
             kernel='linear', tol=self.tol, max_iter=self.max_iter,
             probability=True)
@@ -83,7 +91,11 @@ class NestedCV:
         except ValueError:
             print('The name of the model is not supported')
 
-    def fit(self, X, y, normalize=True, feat_select=True):
+    def add_models(self, name_model, model, params):
+        self.dict_models[name_model] = model
+        self.dict_parameters[name_model] = params
+
+    def fit(self, X, y, normalize=True, feat_select=True, balanced=True):
         # save nested cv results for each split (n_outer_split),
         # each model (len(name_modes)) and for each metrics
         # (AUC, accuracy, balanced, accuracy, sensitivity, specificity)
@@ -91,25 +103,34 @@ class NestedCV:
         rmv_zero_var = VarianceThreshold()
         X = rmv_zero_var.fit_transform(X)
 
-        raw_results = np.zeros((self.n_split_outer, len(self.names_models), 5))
+        raw_results = np.zeros(
+            (self.n_split_outer, len(self.names_models), self.n_split_inner))
         k = 0
         for idx_train, idx_test in self.cv_outer.split(X, y):
+            print('Split number %i' % (k + 1))
             # split data
             X_train, X_test = X[idx_train, :], X[idx_test, :]
             y_train, y_test = y[idx_train], y[idx_test]
+
             for j, model in enumerate(self.names_models):
                 steps = list()
+                if not balanced:
+                    steps.append(
+                        ('sampler',
+                         RandomUnderSampler(random_state=42)))
                 if normalize:
                     steps.append(('scaler', StandardScaler()))
                 if feat_select:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    self.dict_parameters[model]['selecter__max_features'] = np.linspace(
-                        10, X.shape[1], 10, dtype=int)
+                    regs = np.logspace(-4, 4, 10)
+                    self.dict_parameters[model]['selecter__estimator__C'] = 1 / regs[::-1]
                     steps.append((
                         'selecter', SelectFromModel(
-                            RandomForestClassifier(n_estimators=500))))
+                            LogisticRegression(
+                                penalty="l1", tol=self.tol, max_iter=self.max_iter,
+                                solver='liblinear'))))
                 steps.append(('model', self.dict_models[model]))
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
@@ -141,7 +162,6 @@ class NestedCV:
 
                 raw_results[k, j, :] = np.array(
                     [auc, acc, balanced_acc, sensitivity, specificity])
-
             k += 1
 
         self.raw_results = raw_results
@@ -178,16 +198,20 @@ class NestedCV:
         return results
 
     def fit_single_model(self, X, y, name_model, normalize=True,
-                         feat_select=True):
+                         feat_select=True, balanced=True):
         steps = list()
+        if not balanced:
+            steps.append(('sampler', RandomUnderSampler(random_state=42)))
         if normalize:
             steps.append(('scaler', StandardScaler()))
         if feat_select:
-            self.dict_parameters[name_model]['selecter__max_features'] = np.linspace(
-                        10, X.shape[1], 10, dtype=int)
+            regs = np.logspace(-4, 4, 10)
+            self.dict_parameters[name_model]['selecter__estimator__C'] = 1 / regs[::-1]
             steps.append((
                 'selecter', SelectFromModel(
-                    RandomForestClassifier(n_estimators=500))))
+                    LogisticRegression(
+                        penalty="l1", tol=self.tol, max_iter=self.max_iter,
+                        solver='liblinear'))))
         steps.append(('model', self.dict_models[name_model]))
         pipeline = Pipeline(steps)
         search = GridSearchCV(
