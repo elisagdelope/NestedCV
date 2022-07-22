@@ -30,11 +30,11 @@ def normalized_mse(y, x):
 # Define a class that performs comparison of various ML algorithms based
 #  on nested CV
 class NestedCV:
-    def __init__(self, n_split_outer=10, n_split_inner=5, random_state=42):
+    def __init__(self, n_split_outer=10, n_split_inner=5):
         self.n_split_outer = n_split_outer
         self.n_split_inner = n_split_inner
-        self.cv_outer = KFold(n_splits=n_split_outer, random_state=random_state)
-        self.cv_inner = KFold(n_splits=n_split_inner, random_state=random_state)
+        self.cv_outer = KFold(n_splits=n_split_outer)
+        self.cv_inner = KFold(n_splits=n_split_inner)
         self.names_models = [
             "linearSVR", "RBFSVR", "RandomForest", "GradientBoosting",
             "Neural_network", "KNN", "Adaboost", "ridge"]
