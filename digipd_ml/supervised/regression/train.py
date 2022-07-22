@@ -20,6 +20,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
     os.environ["PYTHONWARNINGS"] = "ignore"
 
+
 def normalized_mse(y, x):
     mse_ref = mean_squared_error(y, np.zeros_like(y))
 
@@ -29,11 +30,11 @@ def normalized_mse(y, x):
 # Define a class that performs comparison of various ML algorithms based
 #  on nested CV
 class NestedCV:
-    def __init__(self, n_split_outer=10, n_split_inner=5):
+    def __init__(self, n_split_outer=10, n_split_inner=5, random_state=42):
         self.n_split_outer = n_split_outer
         self.n_split_inner = n_split_inner
-        self.cv_outer = KFold(n_splits=n_split_outer)
-        self.cv_inner = KFold(n_splits=n_split_inner)
+        self.cv_outer = KFold(n_splits=n_split_outer, random_state=random_state)
+        self.cv_inner = KFold(n_splits=n_split_inner, random_state=random_state)
         self.names_models = [
             "linearSVR", "RBFSVR", "RandomForest", "GradientBoosting",
             "Neural_network", "KNN", "Adaboost", "ridge"]
@@ -95,7 +96,6 @@ class NestedCV:
 
         rmv_zero_var = VarianceThreshold()
         X = rmv_zero_var.fit_transform(X)
-
         raw_results = np.zeros(
             (self.n_split_outer, len(self.names_models), len(self.list_metrics)))
         k = 0
@@ -113,8 +113,13 @@ class NestedCV:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    regs = np.logspace(-4, 4, 10)
-                    self.dict_parameters[model]['selecter__estimator__alpha'] = regs[::-1]
+                    if normalize:
+                        alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / len(y)
+                    else:
+                        alpha_max = np.max(np.abs(X.T @ y)) / len(y)
+                    n_alphas = 10
+                    alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
+                    self.dict_parameters[model]['selecter__estimator__alpha'] = alphas
                     steps.append((
                         'selecter', SelectFromModel(
                             Lasso(
@@ -182,8 +187,12 @@ class NestedCV:
             raise ValueError(
                 'Not enough features to perform feature selection')
         if feat_select:
-            regs = np.logspace(-4, 4, 10)
-            self.dict_parameters[name_model]['selecter__estimator__alpha'] = regs[::-1]
+            if normalize:
+                alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / len(y)
+            else:
+                alpha_max = np.max(np.abs(X.T @ y)) / len(y)
+            alphas = np.logspace(alpha_max * 0.9, alpha_max / 1_000, num=10)
+            self.dict_parameters[name_model]['selecter__estimator__alpha'] = alphas
             steps.append((
                 'selecter', SelectFromModel(
                     Lasso(
@@ -196,7 +205,7 @@ class NestedCV:
 
         # Perform GridSearch for the current model over the parameters
         search.fit(X, y)
-
+        import ipdb; ipdb.set_trace()
         # get the best performing model fit on the whole training set
         best_model = search.best_estimator_
         return best_model

@@ -27,11 +27,13 @@ if not sys.warnoptions:
 # Define a class that performs comparison of various ML algorithms based
 #  on nested CV
 class NestedCV:
-    def __init__(self, n_split_outer=10, n_split_inner=5):
+    def __init__(self, n_split_outer=10, n_split_inner=5, random_state=42):
         self.n_split_outer = n_split_outer
         self.n_split_inner = n_split_inner
-        self.cv_outer = KFold(n_splits=n_split_outer, shuffle=True)
-        self.cv_inner = KFold(n_splits=n_split_inner, shuffle=True)
+        self.cv_outer = KFold(
+            n_splits=n_split_outer, shuffle=True, random_state=random_state)
+        self.cv_inner = KFold(
+            n_splits=n_split_inner, shuffle=True, random_state=random_state)
         self.names_models = [
             "linearSVM", "RBFSVM", "RandomForest", "GradientBoosting",
             "Adaboost", "LogisticRegression"]
@@ -76,7 +78,7 @@ class NestedCV:
             'model__max_rules': [6, 8, 10, 12]
         }
 
-        self.list_metrics = ['auc', 'accuracy', 'balanced_accuracy',
+        self.list_metrics = ['f1', 'accuracy', 'balanced_accuracy',
                              'sensitivity', 'specificity']
 
     def set_params(self, name_model, params):
@@ -124,8 +126,13 @@ class NestedCV:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    regs = np.logspace(-4, 4, 10)
-                    self.dict_parameters[model]['selecter__estimator__C'] = 1 / regs[::-1]
+                    if normalize:
+                        alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / 2
+                    else:
+                        alpha_max = np.max(np.abs(X.T @ y)) / 2
+                    n_alphas = 10
+                    alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
+                    self.dict_parameters[model]['selecter__estimator__C'] = 1 / alphas
                     steps.append((
                         'selecter', SelectFromModel(
                             LogisticRegression(
@@ -135,7 +142,7 @@ class NestedCV:
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
                     pipeline, self.dict_parameters[model],
-                    scoring='roc_auc', n_jobs=-1, cv=self.cv_inner)
+                    scoring='f1', n_jobs=-1, cv=self.cv_inner)
 
                 # Perform GridSearch for the current model over the parameters
                 search.fit(X_train, y_train)
@@ -194,6 +201,13 @@ class NestedCV:
             results = results.append(df_min)
             name_row.append("%s" % 'min' + "_%s" % metric)
 
+        for j in range(self.raw_results.shape[0]):
+            df_temp = pd.DataFrame(
+                data=self.raw_results[j, :, 0])
+            df_temp.columns = self.names_models
+            results = results.append(df_temp)
+            name_row.append("Split %i" % (j+1))
+
         results.index = name_row
         return results
 
@@ -205,8 +219,13 @@ class NestedCV:
         if normalize:
             steps.append(('scaler', StandardScaler()))
         if feat_select:
-            regs = np.logspace(-4, 4, 10)
-            self.dict_parameters[name_model]['selecter__estimator__C'] = 1 / regs[::-1]
+            if normalize:
+                alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / 2
+            else:
+                alpha_max = np.max(np.abs(X.T @ y)) / 2
+            n_alphas = 10
+            alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
+            self.dict_parameters[name_model]['selecter__estimator__C'] = 1 / alphas
             steps.append((
                 'selecter', SelectFromModel(
                     LogisticRegression(
