@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
@@ -30,9 +30,9 @@ class NestedCV:
     def __init__(self, n_split_outer=10, n_split_inner=5, random_state=42):
         self.n_split_outer = n_split_outer
         self.n_split_inner = n_split_inner
-        self.cv_outer = KFold(
+        self.cv_outer = StratifiedKFold(
             n_splits=n_split_outer, shuffle=True, random_state=random_state)
-        self.cv_inner = KFold(
+        self.cv_inner = StratifiedKFold(
             n_splits=n_split_inner, shuffle=True, random_state=random_state)
         self.names_models = [
             "linearSVM", "RBFSVM", "RandomForest", "GradientBoosting",
@@ -50,8 +50,8 @@ class NestedCV:
         self.dict_models["RandomForest"] = RandomForestClassifier(
             n_estimators=500)
         self.dict_models["LogisticRegression"] = LogisticRegression(
-            penalty='elasticnet', tol=self.tol, max_iter=self.max_iter,
-            solver='saga', l1_ratio=1.)
+            penalty='none', tol=self.tol, max_iter=self.max_iter,
+            solver='saga')
         self.dict_models["Neural_network"] = MLPClassifier()
         self.dict_models["KNN"] = KNeighborsClassifier()
         self.dict_models["Adaboost"] = AdaBoostClassifier()
@@ -60,7 +60,7 @@ class NestedCV:
 
         self.dict_parameters = {}
         self.dict_parameters["linearSVM"] = {
-            'model__C': np.logspace(-4, 4, 25)}
+            'model__C': np.logspace(-4, 4, 50)}
         self.dict_parameters["RBFSVM"] = {'model__C': np.logspace(-4, 4, 25)}
         self.dict_parameters["RandomForest"] = {
             'model__n_estimators': [100, 250, 500, 1000]}
@@ -78,7 +78,7 @@ class NestedCV:
             'model__max_rules': [6, 8, 10, 12]
         }
 
-        self.list_metrics = ['f1', 'accuracy', 'balanced_accuracy',
+        self.list_metrics = ['auc', 'accuracy', 'balanced_accuracy',
                              'sensitivity', 'specificity']
 
     def set_params(self, name_model, params):
@@ -130,7 +130,7 @@ class NestedCV:
                         alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / 2
                     else:
                         alpha_max = np.max(np.abs(X.T @ y)) / 2
-                    n_alphas = 10
+                    n_alphas = 25
                     alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
                     self.dict_parameters[model]['selecter__estimator__C'] = 1 / alphas
                     steps.append((
@@ -142,7 +142,7 @@ class NestedCV:
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
                     pipeline, self.dict_parameters[model],
-                    scoring='f1', n_jobs=-1, cv=self.cv_inner)
+                    scoring='roc_auc', n_jobs=-1, cv=self.cv_inner)
 
                 # Perform GridSearch for the current model over the parameters
                 search.fit(X_train, y_train)
@@ -204,6 +204,7 @@ class NestedCV:
         for j in range(self.raw_results.shape[0]):
             df_temp = pd.DataFrame(
                 data=self.raw_results[j, :, 0])
+            df_temp = df_temp.T
             df_temp.columns = self.names_models
             results = results.append(df_temp)
             name_row.append("Split %i" % (j+1))

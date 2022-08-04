@@ -6,9 +6,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.svm import NuSVR
 from sklearn.ensemble import RandomForestRegressor, \
      GradientBoostingRegressor, AdaBoostRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
-from sklearn.feature_selection import VarianceThreshold, SelectFromModel
+from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_regression
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.neural_network import MLPRegressor
 from sklearn.neighbors import KNeighborsRegressor
@@ -75,7 +75,7 @@ class NestedCV:
             'model__n_estimators': [100, 250, 500, 1000],
             'model__learning_rate': [0.001, 0.01, 0.1, 1.0]}
 
-        self.list_metrics = ['mse', 'norm_mse']
+        self.list_metrics = ['mse', 'norm_mse', 'r2_score']
 
     def set_params(self, name_model, params):
         try:
@@ -113,17 +113,10 @@ class NestedCV:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    if normalize:
-                        alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / len(y)
-                    else:
-                        alpha_max = np.max(np.abs(X.T @ y)) / len(y)
-                    n_alphas = 10
-                    alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
-                    self.dict_parameters[model]['selecter__estimator__alpha'] = alphas
+                    self.dict_parameters[model]['selecter__k'] = np.linspace(
+                        10, X_train.shape[1], num=10, dtype=int)
                     steps.append((
-                        'selecter', SelectFromModel(
-                            Lasso(
-                                tol=self.tol, max_iter=self.max_iter))))
+                        'selecter', SelectKBest(score_func=f_regression)))
                 steps.append(('model', self.dict_models[model]))
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
@@ -139,9 +132,9 @@ class NestedCV:
                 estimated = best_model.predict(X_test)
                 mse = mean_squared_error(y_test, estimated)
                 norm_mse = normalized_mse(y_test, estimated)
-
+                r2 = r2_score(y_test, estimated)
                 raw_results[k, j, :] = np.array(
-                    [mse, norm_mse])
+                    [mse, norm_mse, r2])
 
             k += 1
 
@@ -187,16 +180,13 @@ class NestedCV:
             raise ValueError(
                 'Not enough features to perform feature selection')
         if feat_select:
-            if normalize:
-                alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / len(y)
-            else:
-                alpha_max = np.max(np.abs(X.T @ y)) / len(y)
-            alphas = np.logspace(alpha_max * 0.9, alpha_max / 1_000, num=10)
-            self.dict_parameters[name_model]['selecter__estimator__alpha'] = alphas
+            if X.shape[1] < 10:
+                raise ValueError(
+                    'Not enough features to perform feature selection')
+            self.dict_parameters[name_model]['selecter__k'] = np.linspace(
+                10, X.shape[1], num=10, dtype=int)
             steps.append((
-                'selecter', SelectFromModel(
-                    Lasso(
-                        tol=self.tol, max_iter=self.max_iter))))
+                'selecter', SelectKBest(score_func=f_regression)))
         steps.append(('model', self.dict_models[name_model]))
         pipeline = Pipeline(steps)
         search = GridSearchCV(
@@ -205,7 +195,6 @@ class NestedCV:
 
         # Perform GridSearch for the current model over the parameters
         search.fit(X, y)
-        import ipdb; ipdb.set_trace()
         # get the best performing model fit on the whole training set
         best_model = search.best_estimator_
         return best_model
