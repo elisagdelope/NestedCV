@@ -8,8 +8,8 @@ from sklearn.ensemble import RandomForestRegressor, \
      GradientBoostingRegressor, AdaBoostRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
-from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_regression
-from sklearn.linear_model import Ridge, Lasso
+from sklearn.feature_selection import VarianceThreshold, SelectFromModel
+from sklearn.linear_model import Ridge, LinearRegression, Lasso
 from sklearn.neural_network import MLPRegressor
 from sklearn.neighbors import KNeighborsRegressor
 import os
@@ -22,7 +22,7 @@ if not sys.warnoptions:
 
 
 def normalized_mse(y, x):
-    mse_ref = mean_squared_error(y, np.zeros_like(y))
+    mse_ref = np.var(y)
 
     return mean_squared_error(y, x) / mse_ref
 
@@ -36,8 +36,8 @@ class NestedCV:
         self.cv_outer = KFold(n_splits=n_split_outer)
         self.cv_inner = KFold(n_splits=n_split_inner)
         self.names_models = [
-            "linearSVR", "RBFSVR", "RandomForest", "GradientBoosting",
-            "Neural_network", "KNN", "Adaboost", "ridge"]
+            "linearSVR", "RBFSVR", "polySVR", "RandomForest", "GradientBoosting",
+            "Neural_network", "KNN", "Adaboost", "ridge", "LinearRegression"]
 
         self.dict_models = {}
         self.tol = 1e-3
@@ -46,6 +46,8 @@ class NestedCV:
             kernel='linear', tol=self.tol, max_iter=self.max_iter)
         self.dict_models["RBFSVR"] = NuSVR(
             kernel='rbf', tol=self.tol, max_iter=self.max_iter)
+        self.dict_models["polySVR"] = NuSVR(
+            kernel='poly', tol=self.tol, max_iter=self.max_iter)
         self.dict_models["RandomForest"] = RandomForestRegressor(
             n_estimators=500)
         self.dict_models["ridge"] = Ridge(
@@ -54,12 +56,16 @@ class NestedCV:
         self.dict_models["KNN"] = KNeighborsRegressor()
         self.dict_models["Adaboost"] = AdaBoostRegressor()
         self.dict_models["GradientBoosting"] = GradientBoostingRegressor()
+        self.dict_models["LinearRegression"] = LinearRegression()
 
         self.dict_parameters = {}
         self.dict_parameters["linearSVR"] = {
             'model__C': np.logspace(-4, 4, 10),
             'model__nu': np.linspace(0.1, 1, 5)}
         self.dict_parameters["RBFSVR"] = {
+            'model__C': np.logspace(-4, 4, 10),
+            'model__nu': np.linspace(0.1, 1, 5)}
+        self.dict_parameters["polySVR"] = {
             'model__C': np.logspace(-4, 4, 10),
             'model__nu': np.linspace(0.1, 1, 5)}
         self.dict_parameters["RandomForest"] = {
@@ -74,6 +80,7 @@ class NestedCV:
         self.dict_parameters["GradientBoosting"] = {
             'model__n_estimators': [100, 250, 500, 1000],
             'model__learning_rate': [0.001, 0.01, 0.1, 1.0]}
+        self.dict_parameters["LinearRegression"] = {}
 
         self.list_metrics = ['mse', 'norm_mse', 'r2_score']
 
@@ -113,15 +120,22 @@ class NestedCV:
                     if X.shape[1] < 10:
                         raise ValueError(
                             'Not enough features to perform feature selection')
-                    self.dict_parameters[model]['selecter__k'] = np.linspace(
-                        10, X_train.shape[1], num=10, dtype=int)
+                    selecter = Lasso()
+                    if normalize:
+                        alpha_max = np.max(np.abs(
+                            StandardScaler().fit_transform(X_train).T @ y_train))
+                    else:
+                        alpha_max = np.max(np.abs(X_train.T @ y_train))
+
+                    self.dict_parameters[model]['selecter__estimator__alpha'] = np.geomspace(
+                        alpha_max * 0.95, alpha_max / 1_000, num=50)
                     steps.append((
-                        'selecter', SelectKBest(score_func=f_regression)))
+                        'selecter', SelectFromModel(selecter)))
                 steps.append(('model', self.dict_models[model]))
                 pipeline = Pipeline(steps)
                 search = GridSearchCV(
                     pipeline, self.dict_parameters[model],
-                    scoring='neg_mean_squared_error', n_jobs=-1, cv=self.cv_inner)
+                    scoring='neg_root_mean_squared_error', n_jobs=-1, cv=self.cv_inner)
 
                 # Perform GridSearch for the current model over the parameters
                 search.fit(X_train, y_train)
@@ -183,15 +197,22 @@ class NestedCV:
             if X.shape[1] < 10:
                 raise ValueError(
                     'Not enough features to perform feature selection')
-            self.dict_parameters[name_model]['selecter__k'] = np.linspace(
-                10, X.shape[1], num=10, dtype=int)
+            selecter = Lasso()
+            if normalize:
+                alpha_max = np.max(np.abs(
+                    StandardScaler().fit_transform(X).T @ y))
+            else:
+                alpha_max = np.max(np.abs(X.T @ y))
+
+            self.dict_parameters[name_model]['selecter__estimator__alpha'] = np.geomspace(
+                alpha_max * 0.95, alpha_max / 1_000, num=50)
             steps.append((
-                'selecter', SelectKBest(score_func=f_regression)))
+                'selecter', SelectFromModel(selecter)))
         steps.append(('model', self.dict_models[name_model]))
         pipeline = Pipeline(steps)
         search = GridSearchCV(
             pipeline, self.dict_parameters[name_model],
-            scoring='neg_mean_squared_error', n_jobs=-1, cv=self.cv_inner)
+            scoring='r2', n_jobs=-1, cv=self.cv_inner)
 
         # Perform GridSearch for the current model over the parameters
         search.fit(X, y)
