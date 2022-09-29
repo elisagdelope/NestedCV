@@ -23,7 +23,6 @@ class OrdinalClassifier():
     def predict_proba(self, X):
         clfs_predict = {k: v.predict_proba(X) for k, v in self.clfs.items()}
         predicted = []
-        import ipdb; ipdb.set_trace()
         for i, y in enumerate(self.unique_class):
             if i == 0:
                 # V1 = 1 - Pr(y > V1)

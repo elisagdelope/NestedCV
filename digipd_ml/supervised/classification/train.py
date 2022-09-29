@@ -127,9 +127,11 @@ class NestedCV:
                         raise ValueError(
                             'Not enough features to perform feature selection')
                     if normalize:
-                        alpha_max = np.max(np.abs(StandardScaler().fit_transform(X).T @ y)) / 2
+                        alpha_max = np.max(
+                            np.abs(
+                                StandardScaler().fit_transform(X_train).T @ y_train)) / 2
                     else:
-                        alpha_max = np.max(np.abs(X.T @ y)) / 2
+                        alpha_max = np.max(np.abs(X_train.T @ y_train)) / 2
                     n_alphas = 25
                     alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
                     self.dict_parameters[model]['selecter__estimator__C'] = 1 / alphas

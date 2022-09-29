@@ -37,7 +37,7 @@ class NestedCV:
         self.cv_inner = KFold(n_splits=n_split_inner)
         self.names_models = [
             "linearSVR", "RBFSVR", "polySVR", "RandomForest", "GradientBoosting",
-            "Neural_network", "KNN", "Adaboost", "ridge", "LinearRegression"]
+            "Neural_network", "Adaboost", "ridge", "LinearRegression"]
 
         self.dict_models = {}
         self.tol = 1e-3
