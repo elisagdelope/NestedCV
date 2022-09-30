@@ -115,6 +115,7 @@ class NestedCV:
             y_train, y_test = y[idx_train], y[idx_test]
 
             for j, model in enumerate(self.names_models):
+                print('Current model: ', model)
                 steps = list()
                 if not balanced:
                     steps.append(
@@ -133,7 +134,7 @@ class NestedCV:
                     else:
                         alpha_max = np.max(np.abs(X_train.T @ y_train)) / 2
                     n_alphas = 25
-                    alphas = np.geomspace(alpha_max, alpha_max / 1_000, n_alphas)
+                    alphas = np.geomspace(alpha_max, alpha_max / 100, n_alphas)
                     self.dict_parameters[model]['selecter__estimator__C'] = 1 / alphas
                     steps.append((
                         'selecter', SelectFromModel(
