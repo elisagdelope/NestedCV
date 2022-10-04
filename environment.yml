@@ -1,5 +1,9 @@
-name: project-template
+name: digipd_analysis
 dependencies:
   - numpy
-  - scipy
+  - pip
+  - pandas
   - scikit-learn
+  - IPython
+  - pip:
+    - imbalanced-learn
