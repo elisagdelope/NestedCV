@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_shap_values(model, X, save_fig=False, name_file=None, path=None):
+def plot_shap_values(model, X, save_fig=False, name_file=None, path=None, names_list=None, plot_title=None):
     """Plot shap values for a given scikit-learn model.
 
     Parameters
@@ -18,17 +18,30 @@ def plot_shap_values(model, X, save_fig=False, name_file=None, path=None):
                 Name of the file if saved.
     path : str
            Path for the saved figure.
+    names_list : list
+                 Names of the features (length # features) to appear in the plot.
+    plot_title : str
+                 Title of the plot.
     """
     explainer = shap.Explainer(model, X)
     shap_values = explainer(X)
     if np.ndim(shap_values) == 3:
         shap_values = shap_values[:, :, 1]
-    shap.plots.beeswarm(shap_values, show=False)
+    if not names_list:
+        names_list = list(X.columns)
+
+    shap_fig = shap.summary_plot(shap_values=shap_values.values, features=X, feature_names=names_list, show=False)
+#    shap.plots.beeswarm(shap_values, show=False)
     fig, ax = plt.gcf(), plt.gca()
     labels = ax.get_yticklabels()
-    ax.set_yticklabels(labels, rotation=45, fontsize=10)
-    fig.set_size_inches(8.5, 5.5)
+    fig.axes[-1].set_aspect(150)  # set the color bar
+    fig.axes[-1].set_box_aspect(150)  # set the color bar
+    fig.set_size_inches(15, 10)  # set figure size
+    ax.set_yticklabels(labels, fontsize=12)
+    ax.set_xticklabels(np.round(ax.get_xticks(), 2), rotation=15, fontsize=8)
+    plt.title(plot_title)
     fig.tight_layout()
     if save_fig:
         fig.savefig(path + name_file)
-    fig.show()
+ #   fig.show()
+    plt.close(fig)
