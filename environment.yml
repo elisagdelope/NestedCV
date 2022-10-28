@@ -5,5 +5,7 @@ dependencies:
   - pandas
   - scikit-learn
   - IPython
+  - shap
   - pip:
     - imbalanced-learn
+    - matplotlib==3.5.3
