@@ -4,7 +4,8 @@ import shap
 
 
 def match_patients(data, clinical, on='Patient_ID'):
-    '''Match samples between the two dataframes data and clinical.
+    """
+    Match samples between the two dataframes data and clinical.
     By default, function matches patients based on Patient_ID column.
     Patient_ID will be the indices (rownames) of the returned dataframes.
 
@@ -18,8 +19,8 @@ def match_patients(data, clinical, on='Patient_ID'):
     -------
     joined_data : DataFrame
         Joined dataframe contaning samples matching beetween the two dataframes.
+    """
 
-    '''
     # match gait features and diagnosis
     is_in = list()
     for i in range(clinical.shape[0]):

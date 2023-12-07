@@ -43,20 +43,20 @@ class NestedCV:
 
         self.dict_models["linearSVM"] = SVC(
             kernel='linear', tol=self.tol, max_iter=self.max_iter,
-            probability=True)
+            probability=True, random_state=random_state)
         self.dict_models["RBFSVM"] = SVC(
             kernel='rbf', tol=self.tol, max_iter=self.max_iter,
-            probability=True)
+            probability=True, random_state=random_state)
         self.dict_models["RandomForest"] = RandomForestClassifier(
-            n_estimators=500)
+            n_estimators=500, random_state=random_state)
         self.dict_models["LogisticRegression"] = LogisticRegression(
             penalty='none', tol=self.tol, max_iter=self.max_iter,
-            solver='saga')
-        self.dict_models["Neural_network"] = MLPClassifier()
+            solver='saga', random_state=random_state)
+        self.dict_models["Neural_network"] = MLPClassifier(random_state=random_state)
         self.dict_models["KNN"] = KNeighborsClassifier()
-        self.dict_models["Adaboost"] = AdaBoostClassifier()
-        self.dict_models["GradientBoosting"] = GradientBoostingClassifier()
-        self.dict_models["FIGS"] = FIGSClassifier()
+        self.dict_models["Adaboost"] = AdaBoostClassifier(random_state=random_state)
+        self.dict_models["GradientBoosting"] = GradientBoostingClassifier(random_state=random_state)
+        self.dict_models["FIGS"] = FIGSClassifier(random_state=random_state)
 
         self.dict_parameters = {}
         self.dict_parameters["linearSVM"] = {
