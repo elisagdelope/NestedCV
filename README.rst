@@ -21,11 +21,9 @@ NestedCV() - A scikit-learn compatible class for nested cross-validation
 ========================================================================
 
 
-**Quentin Klopfenstein<sup>&dagger;</sup>, Elisa Gómez de Lope<sup>&dagger;</sup>**
+Quentin Klopfenstein<sup>†</sup>, Elisa Gómez de Lope<sup>†</sup>
 
-
-&dagger; University of Luxembourg, Biomedical Data Science group
-
+<sup>†</sup> University of Luxembourg, Biomedical Data Science group
 
 .. _scikit-learn: https://scikit-learn.org
 
