@@ -17,8 +17,8 @@
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/sklearn-template/badge/?version=latest
 .. _ReadTheDocs: https://sklearn-template.readthedocs.io/en/latest/?badge=latest
 
-project-template - A template for scikit-learn contributions
-============================================================
+NestedCV() - A scikit-learn compatible class for nested cross-validation
+========================================================================
 
 .. _scikit-learn: https://scikit-learn.org
 
