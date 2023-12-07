@@ -22,17 +22,10 @@ project-template - A template for scikit-learn contributions
 
 .. _scikit-learn: https://scikit-learn.org
 
-**project-template** is a template project for scikit-learn_ compatible
-extensions.
+**NestedCV()** is a class compatible with scikit-learn_ extensions.
 
-It aids development of estimators that can be used in scikit-learn pipelines
-and (hyper)parameter search, while facilitating testing (including some API
-compliance), documentation, open source development, packaging, and continuous
-integration.
+It provides functions that streamline the nested cross-validation setting for several ML algorithms,
+and can be used in scikit-learn pipelines and (hyper)parameter search. This package was created as a
+scikit-learn (https://scikit-learn.org) project-template (https://sklearn-template.readthedocs.io/en/latest/quick_start.html).
 
-.. _documentation: https://sklearn-template.readthedocs.io/en/latest/quick_start.html
-
-Refer to the documentation_ to modify the template for your own scikit-learn
-contribution.
-
-*Thank you for cleanly contributing to the scikit-learn ecosystem!*
+*Cleanly contributing to the scikit-learn ecosystem!*
