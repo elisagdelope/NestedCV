@@ -26,6 +26,6 @@ project-template - A template for scikit-learn contributions
 
 It provides functions that streamline the nested cross-validation setting for several ML algorithms,
 and can be used in scikit-learn pipelines and (hyper)parameter search. This package was created as a
-scikit-learn (https://scikit-learn.org) project-template (https://sklearn-template.readthedocs.io/en/latest/quick_start.html).
+scikit-learn project-template (https://sklearn-template.readthedocs.io/en/latest/quick_start.html).
 
 *Cleanly contributing to the scikit-learn ecosystem!*
