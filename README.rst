@@ -20,6 +20,13 @@
 NestedCV() - A scikit-learn compatible class for nested cross-validation
 ========================================================================
 
+
+**Quentin Klopfenstein<sup>&dagger;</sup>, Elisa Gómez de Lope<sup>&dagger;</sup>**
+
+
+&dagger; University of Luxembourg, Biomedical Data Science group
+
+
 .. _scikit-learn: https://scikit-learn.org
 
 **NestedCV()** is a class compatible with scikit-learn_ extensions.
