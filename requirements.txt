@@ -2,3 +2,5 @@ numpy
 scikit-learn
 imodels
 Pandas
+shap
+matplotlib==3.5.3
