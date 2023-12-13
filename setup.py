@@ -15,8 +15,8 @@ DISTNAME = 'digipd_ml'
 DESCRIPTION = 'NestedCV for classification and regression'
 with open('README.rst', 'r') as f:
     LONG_DESCRIPTION = f.read()
-MAINTAINER = 'Quentin Klopfenstein'
-MAINTAINER_EMAIL = 'quentin.klopfenstein@uni.lu'
+MAINTAINER = 'Elisa Gómez de Lope'
+MAINTAINER_EMAIL = 'elisa.gomezdelope@uni.lu'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'https://github.com/Klopfe/digipd_ml'
 VERSION = version
