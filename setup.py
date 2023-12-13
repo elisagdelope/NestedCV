@@ -29,5 +29,6 @@ setup(name=DISTNAME,
       maintainer_email=MAINTAINER_EMAIL,
       download_url=DOWNLOAD_URL,
       packages=find_packages(),
-      install_requires=['numpy>=1.12', 'scikit-learn>=1.0', 'imodels', 'pandas']
+      install_requires=['numpy>=1.12', 'scikit-learn>=1.0', 'imodels', 'pandas', 'shap', 'matplotlib==3.5.3']
       )
+
